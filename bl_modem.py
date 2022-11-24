@@ -34,7 +34,26 @@ class BL_Modem():
         with tarfile.open(os.path.join(self.path, self.tar_firmware)) as tar:
             members = [member for member in tar.getmembers() if member.name in BL_FILES + GSM_MODEM_FILE + LTE_MODEM_FILE]
             self.bl_files = [member.name for member in members if member.name in BL_FILES]
-            tar.extractall(members=members, path=self.path)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(tar, members=members, path=self.path)
 
     def create_tar(self, tar_filename, files):
         logging.info('Creating %s' % tar_filename)
